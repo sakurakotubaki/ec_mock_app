@@ -1,4 +1,6 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import '../data/database.dart';
 import '../models/product.dart';
 
 class ProductDetailPage extends StatelessWidget {
@@ -34,6 +36,66 @@ class ProductDetailPage extends StatelessWidget {
     return products.firstWhere((p) => p.id == productId);
   }
 
+  Future<void> _addToCart(BuildContext context, Product product) async {
+    final database = AppDatabase();
+    
+    await database.addToCart(
+      CartItemsCompanion(
+        productId: drift.Value(product.id),
+        name: drift.Value(product.name),
+        price: drift.Value(product.price),
+        imageUrl: drift.Value(product.imageUrl),
+        quantity: const drift.Value(1),
+        addedAt: drift.Value(DateTime.now()),
+      ),
+    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Added to cart'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleFavorite(BuildContext context, Product product) async {
+    final database = AppDatabase();
+    final isFavorite = await database.isFavorite(product.id);
+
+    if (isFavorite) {
+      await database.removeFromFavorites(product.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Removed from favorites'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      await database.addToFavorites(
+        FavoriteItemsCompanion(
+          productId: drift.Value(product.id),
+          name: drift.Value(product.name),
+          price: drift.Value(product.price),
+          imageUrl: drift.Value(product.imageUrl),
+          description: drift.Value(product.description),
+          addedAt: drift.Value(DateTime.now()),
+        ),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Added to favorites'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = _getProduct();
@@ -41,6 +103,22 @@ class ProductDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(product.name),
+        actions: [
+          StreamBuilder<List<FavoriteItem>>(
+            stream: AppDatabase().watchFavorites(),
+            builder: (context, snapshot) {
+              final isFavorite = snapshot.hasData &&
+                  snapshot.data!.any((item) => item.productId == product.id);
+              return IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.red : null,
+                ),
+                onPressed: () => _toggleFavorite(context, product),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -88,14 +166,7 @@ class ProductDetailPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
-            onPressed: () {
-              // カートに追加する処理
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Added to cart'),
-                ),
-              );
-            },
+            onPressed: () => _addToCart(context, product),
             child: const Padding(
               padding: EdgeInsets.all(16.0),
               child: Text('Add to Cart'),
