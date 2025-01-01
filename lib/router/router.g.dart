@@ -50,10 +50,14 @@ extension $ProductDetailRouteExtension on ProductDetailRoute {
   static ProductDetailRoute _fromState(GoRouterState state) =>
       ProductDetailRoute(
         productId: state.pathParameters['productId']!,
+        source: state.uri.queryParameters['source'],
       );
 
   String get location => GoRouteData.$location(
         '/product/${Uri.encodeComponent(productId)}',
+        queryParams: {
+          if (source != null) 'source': source,
+        },
       );
 
   void go(BuildContext context) => context.go(location);

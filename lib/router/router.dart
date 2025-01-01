@@ -29,12 +29,17 @@ class HomeRoute extends GoRouteData {
 }
 
 class ProductDetailRoute extends GoRouteData {
-  const ProductDetailRoute({required this.productId});
+  const ProductDetailRoute({
+    required this.productId,
+    this.source,
+  });
+
   final String productId;
+  final String? source;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ProductDetailPage(productId: productId);
+      ProductDetailPage(productId: productId, source: source);
 }
 
 class CartRoute extends GoRouteData {

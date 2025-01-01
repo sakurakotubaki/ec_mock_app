@@ -1,12 +1,19 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../data/database.dart';
 import '../models/product.dart';
+import '../router/router.dart';
 
 class ProductDetailPage extends StatelessWidget {
-  const ProductDetailPage({super.key, required this.productId});
+  const ProductDetailPage({
+    super.key,
+    required this.productId,
+    this.source,
+  });
 
   final String productId;
+  final String? source;
 
   Product _getProduct() {
     // 実際のアプリではAPIやデータベースから取得します
@@ -96,14 +103,49 @@ class ProductDetailPage extends StatelessWidget {
     }
   }
 
+  Future<void> _shareProduct(BuildContext context, Product product) async {
+    final path = ProductDetailRoute(
+      productId: product.id,
+      source: 'share',
+    ).location;
+
+    final shareText = '''
+Check out this amazing product!
+
+${product.name}
+Price: \$${product.price.toStringAsFixed(2)}
+${product.description}
+
+View it here: ecmockapp://$path
+''';
+
+    await Share.share(shareText, subject: product.name);
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = _getProduct();
+
+    // ソースがシェアの場合、ウェルカムメッセージを表示
+    if (source == 'share') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Welcome! You arrived here from a shared link.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(product.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () => _shareProduct(context, product),
+          ),
           StreamBuilder<List<FavoriteItem>>(
             stream: AppDatabase().watchFavorites(),
             builder: (context, snapshot) {

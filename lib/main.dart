@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
       routerConfig: GoRouter(
         routes: $appRoutes,
         initialLocation: '/',
+        debugLogDiagnostics: true,
       ),
     );
   }
